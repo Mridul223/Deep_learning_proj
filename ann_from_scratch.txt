@@ -1,0 +1,315 @@
+import numpy as np
+
+
+# ============================================================
+# 1. INPUT DATA
+# ============================================================
+
+# We have 8 samples.
+# Each sample has 3 input features:
+#
+# x1   x2   x3
+#
+# Example:
+# [1, 2, 1]
+
+X = np.array([
+    [1, 2, 1],
+    [2, 1, 2],
+    [3, 2, 3],
+    [4, 3, 4],
+    [5, 4, 5],
+    [6, 5, 6],
+    [7, 6, 7],
+    [8, 7, 8]
+], dtype=float)
+
+
+# Actual output
+#
+# 0 → Class 0
+# 1 → Class 1
+
+y = np.array([
+    [0],
+    [0],
+    [1],
+    [0],
+    [0],
+    [1],
+    [1],
+    [1]
+], dtype=float)
+
+
+# ============================================================
+# 2. INITIALIZE WEIGHTS AND BIASES
+# ============================================================
+
+# Our ANN:
+#
+# Input Layer  → 3 neurons
+# Hidden Layer → 4 neurons
+# Output Layer → 1 neuron
+#
+# Therefore:
+#
+# W1 = 3 × 4
+# W2 = 4 × 1
+
+np.random.seed(42)
+
+
+# Weights from INPUT → HIDDEN
+
+W1 = np.random.randn(3, 4) * 0.01
+
+
+# Bias for 4 hidden neurons
+
+b1 = np.zeros((1, 4))
+
+
+# Weights from HIDDEN → OUTPUT
+
+W2 = np.random.randn(4, 1) * 0.01
+
+
+# Bias for output neuron
+
+b2 = np.zeros((1, 1))
+
+
+# ============================================================
+# 3. ACTIVATION FUNCTIONS
+# ============================================================
+
+# -------------------------
+# ReLU
+# -------------------------
+#
+# ReLU(x) = max(0, x)
+#
+# Negative value → 0
+# Positive value → same value
+
+def relu(x):
+    return np.maximum(0, x)
+
+
+# -------------------------
+# Sigmoid
+# -------------------------
+#
+# Sigmoid converts a value into
+# a number between 0 and 1.
+#
+# This is useful for binary classification.
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
+# ============================================================
+# 4. TRAINING
+# ============================================================
+
+# Number of times the model will
+# see the complete dataset.
+
+epochs = 5000
+
+
+# Learning rate controls how big
+# the weight updates will be.
+
+learning_rate = 0.1
+
+
+for epoch in range(epochs):
+
+
+    # ========================================================
+    # FORWARD PROPAGATION
+    # ========================================================
+
+    # --------------------------------------------------------
+    # INPUT → HIDDEN
+    # --------------------------------------------------------
+    #
+    # Z1 = X × W1 + b1
+
+    Z1 = np.dot(X, W1) + b1
+
+
+    # Apply ReLU
+
+    A1 = relu(Z1)
+
+
+    # --------------------------------------------------------
+    # HIDDEN → OUTPUT
+    # --------------------------------------------------------
+    #
+    # Z2 = A1 × W2 + b2
+
+    Z2 = np.dot(A1, W2) + b2
+
+
+    # Apply Sigmoid
+
+    A2 = sigmoid(Z2)
+
+
+    # A2 is our prediction.
+    #
+    # Example:
+    #
+    # 0.12
+    # 0.25
+    # 0.80
+    # 0.95
+
+
+    # ========================================================
+    # 5. CALCULATE ERROR
+    # ========================================================
+
+    # Difference between actual output
+    # and predicted output.
+
+    error = A2 - y
+
+
+    # ========================================================
+    # 6. BACKPROPAGATION
+    # ========================================================
+
+    # Now we send the error backwards
+    # through the network.
+    #
+    # The goal is to find out:
+    #
+    # "Which weights should be changed?"
+
+
+    # --------------------------------------------------------
+    # OUTPUT LAYER
+    # --------------------------------------------------------
+
+    dZ2 = A2 - y
+
+
+    # Gradient of W2
+
+    dW2 = np.dot(A1.T, dZ2) / len(X)
+
+
+    # Gradient of output bias
+
+    db2 = np.sum(dZ2, axis=0, keepdims=True) / len(X)
+
+
+    # --------------------------------------------------------
+    # HIDDEN LAYER
+    # --------------------------------------------------------
+
+    # Send the error back through W2.
+
+    dA1 = np.dot(dZ2, W2.T)
+
+
+    # ReLU derivative
+    #
+    # If Z1 > 0 → 1
+    # If Z1 <= 0 → 0
+
+    dZ1 = dA1 * (Z1 > 0)
+
+
+    # Gradient of W1
+
+    dW1 = np.dot(X.T, dZ1) / len(X)
+
+
+    # Gradient of hidden bias
+
+    db1 = np.sum(dZ1, axis=0, keepdims=True) / len(X)
+
+
+    # ========================================================
+    # 7. UPDATE WEIGHTS AND BIASES
+    # ========================================================
+
+    # Gradient Descent:
+    #
+    # new value =
+    # old value - learning_rate × gradient
+
+    W1 = W1 - learning_rate * dW1
+
+    b1 = b1 - learning_rate * db1
+
+    W2 = W2 - learning_rate * dW2
+
+    b2 = b2 - learning_rate * db2
+
+
+    # Print error every 1000 epochs
+
+    if epoch % 1000 == 0:
+
+        print(
+            "Epoch:",
+            epoch,
+            "Error:",
+            np.mean(np.abs(error))
+        )
+
+
+# ============================================================
+# 8. FINAL PREDICTION
+# ============================================================
+
+# Forward propagation one final time.
+
+Z1 = np.dot(X, W1) + b1
+
+A1 = relu(Z1)
+
+Z2 = np.dot(A1, W2) + b2
+
+probability = sigmoid(Z2)
+
+
+# ============================================================
+# 9. CONVERT PROBABILITY INTO CLASS
+# ============================================================
+
+# Probability >= 0.5 → 1
+# Probability <  0.5 → 0
+
+prediction = (probability >= 0.5).astype(int)
+
+
+# ============================================================
+# 10. DISPLAY RESULTS
+# ============================================================
+
+print("\nActual:")
+print(y.flatten())
+
+print("\nProbability:")
+print(probability.flatten())
+
+print("\nPrediction:")
+print(prediction.flatten())
+
+
+# ============================================================
+# 11. ACCURACY
+# ============================================================
+
+accuracy = np.mean(prediction == y)
+
+print("\nAccuracy:", accuracy * 100, "%")

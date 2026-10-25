@@ -1,0 +1,272 @@
+
+# ============================================================
+# FIRST ANN - BINARY CLASSIFICATION
+# ============================================================
+
+# We are going to build a simple Artificial Neural Network.
+#
+# Flow:
+#
+#       INPUT LAYER
+#       x1  x2  x3
+#          ↓
+#       HIDDEN LAYER
+#       4 Neurons
+#          ↓
+#         ReLU
+#          ↓
+#       OUTPUT LAYER
+#       1 Neuron
+#          ↓
+#       Sigmoid
+#          ↓
+#         0 / 1
+
+
+# ============================================================
+# 1. IMPORT LIBRARIES
+# ============================================================
+
+import numpy as np
+
+# Sequential is used to create the neural network layer by layer.
+from tensorflow.keras.models import Sequential
+
+# Input defines the number of input features.
+# Dense creates a fully connected neural network layer.
+from tensorflow.keras.layers import Input, Dense
+
+
+# ============================================================
+# 2. CREATE INPUT DATA
+# ============================================================
+
+# X contains our input features.
+#
+# We have 8 examples.
+# Each example has 3 features:
+#
+# x1   x2   x3
+# ↓    ↓    ↓
+#  1    2    1
+#  2    1    2
+#  3    2    3
+#  ...
+#
+# Therefore:
+# 8 samples
+# 3 features
+
+X = np.array([
+    [1, 2, 1],
+    [2, 1, 2],
+    [3, 2, 3],
+    [4, 3, 4],
+    [5, 4, 5],
+    [6, 5, 6],
+    [7, 6, 7],
+    [8, 7, 8]
+])
+
+
+# ============================================================
+# 3. CREATE OUTPUT / TARGET
+# ============================================================
+
+# y contains the actual answers.
+#
+# This is a binary classification problem.
+#
+# 0 → Class 0
+# 1 → Class 1
+#
+# First four examples → 0
+# Last four examples  → 1
+
+y = np.array([
+    1, 0, 0, 1,
+    0, 1, 0, 1
+])
+
+# ============================================================
+# 2. NORMALIZE INPUT
+# ============================================================
+
+# Bring all features to a similar scale.
+#
+# Formula:
+#
+# normalized = (value - mean) / standard deviation
+
+X = (X - X.mean(axis=0)) / X.std(axis=0)
+# ============================================================
+# 4. CREATE THE ANN MODEL
+# ============================================================
+
+# Sequential means:
+#
+# We are going to add layers one after another.
+#
+# Flow:
+#
+# Input → Hidden Layer → Output Layer
+
+model = Sequential([
+
+
+    # --------------------------------------------------------
+    # INPUT LAYER
+    # --------------------------------------------------------
+
+    # Our input contains 3 features.
+    #
+    # x1, x2, x3
+    #
+    # Therefore input shape = 3
+
+    Input(shape=(3,)),
+
+
+    # --------------------------------------------------------
+    # HIDDEN LAYER
+    # --------------------------------------------------------
+
+    # Dense means every neuron is connected
+    # to the neurons in the previous layer.
+    #
+    # 4 → number of neurons
+    #
+    # ReLU → activation function
+    #
+    # So this layer has:
+    #
+    # 4 neurons
+    # ReLU activation
+
+    Dense(4, activation="relu"),
+
+
+    # --------------------------------------------------------
+    # OUTPUT LAYER
+    # --------------------------------------------------------
+
+    # We need only ONE output because this is
+    # binary classification.
+    #
+    # Sigmoid converts the output into a value
+    # between 0 and 1.
+    #
+    # Example:
+    #
+    # 0.20 → likely class 0
+    # 0.85 → likely class 1
+
+    Dense(1, activation="sigmoid")
+])
+
+
+# ============================================================
+# 5. COMPILE THE MODEL
+# ============================================================
+
+# compile() tells the neural network
+# how it should learn.
+
+model.compile(
+
+    # Adam is the optimizer.
+    # It controls how the model updates its weights
+    # during training.
+
+    optimizer="adam",
+
+
+    # Binary Cross Entropy is commonly used
+    # for binary classification.
+    #
+    # It measures the difference between:
+    #
+    # Actual output
+    #       vs
+    # Predicted output
+
+    loss="binary_crossentropy",
+
+
+    # Accuracy tells us how many predictions
+    # are correct.
+
+    metrics=["accuracy"]
+)
+
+
+# ============================================================
+# 6. TRAIN THE ANN
+# ============================================================
+
+# fit() is used to train the neural network.
+#
+# X → input data
+# y → actual answers
+#
+# epochs = 50 means the model will see the
+# complete dataset 50 times.
+
+model.fit(
+    X,
+    y,
+    epochs=5000
+
+)
+
+
+# ============================================================
+# 7. MAKE PREDICTIONS
+# ============================================================
+
+# predict() gives us the output of the neural network.
+#
+# Because we used sigmoid in the output layer,
+# the result will be a probability between 0 and 1.
+
+probability = model.predict(X)
+
+
+# Display the probabilities.
+
+print("Predicted Probability:")
+print(probability)
+
+
+# ============================================================
+# 8. CONVERT PROBABILITY INTO CLASS
+# ============================================================
+
+# The neural network gives probabilities.
+#
+# Example:
+#
+# 0.20
+# 0.35
+# 0.75
+# 0.90
+#
+# We need to convert these into:
+#
+# 0
+# 0
+# 1
+# 1
+#
+# We use 0.5 as the threshold.
+#
+# probability >= 0.5 → 1
+# probability <  0.5 → 0
+
+prediction = (probability >= 0.5).astype(int)
+
+
+# Display final predictions.
+
+print("Predicted Class:")
+print(prediction)

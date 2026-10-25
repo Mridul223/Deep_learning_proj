@@ -1,0 +1,523 @@
+# "I love this movie"
+#         ↓
+#     Tokenization
+#         ↓
+#  [1, 2, 3, 4]
+#         ↓
+#      Padding
+#         ↓
+#  [1, 2, 3, 4, 0, 0]
+#         ↓
+#     Embedding
+#         ↓
+#  Word Vectors
+#         ↓
+#  ┌──────────────┐
+#  │     RNN      │
+#  │              │
+#  │  h₁ → h₂ → h₃ → h₄
+#  └──────────────┘
+#         ↓
+#   Final Hidden State
+#         ↓
+#       Dense
+#         ↓
+#      Sigmoid
+#         ↓
+#    0.91 Positive
+
+
+# ============================================================
+# BASIC RNN FOR SENTENCE SENTIMENT CLASSIFICATION
+# ============================================================
+# Goal:
+# We will give the RNN sentences such as:
+# "I love this movie"  -> Positive
+# "I hate this movie"  -> Negative
+#
+# The complete process is:
+#
+# Sentence
+#    ↓
+# Tokenization
+#    ↓
+# Numbers
+#    ↓
+# Padding
+#    ↓
+# Embedding
+#    ↓
+# RNN
+#    ↓
+# Dense Layer
+#    ↓
+# Sigmoid
+#    ↓
+# Positive / Negative
+# ============================================================
+
+
+# ------------------------------------------------------------
+# 1. IMPORT LIBRARIES
+# ------------------------------------------------------------
+
+# NumPy is used for working with numerical data and arrays.
+import numpy as np
+
+# Sequential allows us to create a neural network
+# by adding layers one after another.
+from tensorflow.keras.models import Sequential
+
+# Embedding converts word IDs into numerical vectors.
+#
+# SimpleRNN is the actual Recurrent Neural Network layer.
+#
+# Dense is a fully connected neural network layer.
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+
+# Tokenizer converts words/sentences into numbers.
+from tensorflow.keras.preprocessing.text import Tokenizer
+
+# pad_sequences makes all sentences the same length.
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+
+# ============================================================
+# 2. CREATE OUR TRAINING SENTENCES
+# ============================================================
+
+# These are the sentences that we will use to train the model.
+sentences = [
+
+    # Positive sentences
+    "I love this movie",
+    "This movie is amazing",
+    "This movie is terrible",
+    "I really dislike this film",
+    "I enjoyed this movie",
+
+    # Negative sentences
+    "I hate this movie",
+    "I really like this film",
+    "This is a great movie",
+    "This is a bad movie",
+    "I did not enjoy this movie"
+]
+
+
+# ============================================================
+# 3. CREATE LABELS
+# ============================================================
+
+# We need to tell the model what the correct answer is.
+#
+# We will use:
+#
+# 1 = Positive
+# 0 = Negative
+#
+# The first five sentences are positive,
+# so they get label 1.
+#
+# The next five sentences are negative,
+# so they get label 0.
+
+labels = np.array([
+    1,  # I love this movie -> Positive
+    1,  # This movie is amazing -> Positive
+    0,  # I really like this film -> Positive
+    0,  # This is a great movie -> Positive
+    1,  # I enjoyed this movie -> Positive
+
+    0,  # I hate this movie -> Negative
+    1,  # This movie is terrible -> Negative
+    1,  # I really dislike this film -> Negative
+    0,  # This is a bad movie -> Negative
+    0   # I did not enjoy this movie -> Negative
+])
+
+
+# ============================================================
+# 4. CREATE TOKENIZER
+# ============================================================
+
+# Tokenizer creates a vocabulary from our sentences.
+#
+# For example, it can create something similar to:
+#
+# I       -> 1
+# this    -> 2
+# movie   -> 3
+# love    -> 4
+#
+# The actual numbers are assigned automatically.
+
+tokenizer = Tokenizer()
+
+
+# ============================================================
+# 5. BUILD THE VOCABULARY
+# ============================================================
+
+# fit_on_texts() reads all our sentences
+# and creates the word-to-number mapping.
+
+tokenizer.fit_on_texts(sentences)
+
+
+# ============================================================
+# 6. DISPLAY THE WORD INDEX
+# ============================================================
+
+# word_index contains the mapping between
+# words and their numerical IDs.
+
+print("Word Index:")
+print(tokenizer.word_index)
+
+
+# ============================================================
+# 7. CONVERT SENTENCES INTO NUMBERS
+# ============================================================
+
+# Neural networks cannot directly process normal text.
+#
+# So we convert:
+#
+# "I love this movie"
+#
+# into something like:
+#
+# [1, 4, 2, 3]
+#
+# The numbers depend on the vocabulary created
+# by the tokenizer.
+
+sequences = tokenizer.texts_to_sequences(sentences)
+
+
+# Display the numerical representation.
+print("\nSequences:")
+print(sequences)
+
+
+# ============================================================
+# 8. PADDING
+# ============================================================
+
+# Different sentences have different lengths.
+#
+# Example:
+#
+# "I love movie"
+# -> [1, 4, 3]
+#
+# "I really love this movie"
+# -> [1, 5, 4, 2, 3]
+#
+# Neural networks work more conveniently when
+# every sequence has the same length.
+#
+# We will make every sentence length = 6.
+
+X = pad_sequences(
+    sequences,
+
+    # Maximum number of words/time steps
+    maxlen=6,
+
+    # Add zeros at the END of shorter sentences
+    padding="post"
+)
+
+
+# Display the padded data.
+print("\nPadded Data:")
+print(X)
+
+
+# ============================================================
+# 9. CHECK INPUT SHAPE
+# ============================================================
+
+# X.shape tells us the size of our training data.
+#
+# We have:
+#
+# 10 sentences
+# 6 positions/time steps per sentence
+
+print("\nX Shape:")
+print(X.shape)
+
+
+# ============================================================
+# 10. FIND VOCABULARY SIZE
+# ============================================================
+
+# len(tokenizer.word_index)
+# gives us the number of unique words.
+#
+# We add 1 because index 0 is reserved for padding.
+
+vocab_size = len(tokenizer.word_index) + 1
+
+print("\nVocabulary Size:")
+print(vocab_size)
+
+
+# ============================================================
+# 11. CREATE THE RNN MODEL
+# ============================================================
+
+# Sequential means that the data will move
+# through the layers one after another.
+
+model = Sequential()
+
+
+# ============================================================
+# 12. EMBEDDING LAYER
+# ============================================================
+
+# The tokenizer gave each word an integer ID.
+#
+# Example:
+#
+# love -> 4
+#
+# But 4 itself does not contain useful meaning.
+#
+# Embedding converts the word ID into a vector.
+#
+# output_dim=16 means:
+# each word will be represented using 16 numbers.
+
+model.add(
+    Embedding(
+        input_dim=vocab_size,
+        output_dim=16
+    )
+)
+
+
+# ============================================================
+# 13. RNN LAYER
+# ============================================================
+
+# SimpleRNN is the actual Recurrent Neural Network.
+#
+# 32 means the RNN has 32 hidden units.
+#
+# tanh is the activation function used by
+# the RNN hidden-state computation.
+
+model.add(
+    SimpleRNN(
+        32,
+        activation="tanh"
+    )
+)
+
+
+# ============================================================
+# 14. OUTPUT LAYER
+# ============================================================
+
+# Dense creates a fully connected layer.
+#
+# We use only 1 neuron because this is a
+# binary classification problem:
+#
+# 0 -> Negative
+# 1 -> Positive
+#
+# sigmoid converts the output into a value
+# between 0 and 1.
+
+model.add(
+    Dense(
+        1,
+        activation="sigmoid"
+    )
+)
+
+
+# ============================================================
+# 15. BUILD THE MODEL
+# ============================================================
+
+# Tell Keras the input shape.
+#
+# None = number of samples can be different.
+# 6    = each sentence has 6 time steps
+#       after padding.
+
+model.build(
+    input_shape=(None, 6)
+)
+
+
+# ============================================================
+# 16. DISPLAY MODEL ARCHITECTURE
+# ============================================================
+
+# summary() shows all the layers,
+# output shapes and number of parameters.
+
+model.summary()
+
+
+# ============================================================
+# 17. COMPILE THE MODEL
+# ============================================================
+
+# Before training, we need to configure the model.
+
+model.compile(
+
+    # Adam is the optimizer.
+    # It updates the model's weights during training.
+    optimizer="adam",
+
+    # Binary crossentropy is used because
+    # we have two classes:
+    #
+    # 0 -> Negative
+    # 1 -> Positive
+    loss="binary_crossentropy",
+
+    # Accuracy tells us how many predictions
+    # were correct.
+    metrics=["accuracy"]
+)
+
+
+# ============================================================
+# 18. TRAIN THE MODEL
+# ============================================================
+
+# fit() starts the training process.
+#
+# X      -> input sentences converted into numbers
+# labels -> correct answers
+#
+# epochs=100 means the model goes through
+# the training data 100 times.
+
+model.fit(
+    X,
+    labels,
+    epochs=100,
+
+    # verbose=1 displays training progress.
+    verbose=1
+)
+
+
+# ============================================================
+# 19. CREATE A NEW SENTENCE
+# ============================================================
+
+# Now we give the trained RNN a sentence
+# that it has not directly seen during training.
+
+new_sentence = [
+    "I don't like this"
+]
+
+
+# ============================================================
+# 20. CONVERT NEW SENTENCE INTO NUMBERS
+# ============================================================
+
+# The new sentence must go through the SAME
+# tokenizer that we used during training.
+
+new_sequence = tokenizer.texts_to_sequences(
+    new_sentence
+)
+
+print("\nNew Sentence as Numbers:")
+print(new_sequence)
+
+
+# ============================================================
+# 21. PAD THE NEW SENTENCE
+# ============================================================
+
+# Our model expects sequences of length 6.
+#
+# Therefore, the new sentence also needs
+# to be padded to length 6.
+
+new_input = pad_sequences(
+    new_sequence,
+
+    # Same maximum length used during training.
+    maxlen=6,
+
+    # Add zeros at the end.
+    padding="post"
+)
+
+
+print("\nNew Sentence After Padding:")
+print(new_input)
+
+
+# ============================================================
+# 22. MAKE PREDICTION
+# ============================================================
+
+# predict() sends the new sentence through:
+#
+# Embedding
+#     ↓
+# RNN
+#     ↓
+# Dense
+#     ↓
+# Sigmoid
+#
+# The result will be a number between 0 and 1.
+
+prediction = model.predict(new_input)
+
+
+# ============================================================
+# 23. GET THE PROBABILITY
+# ============================================================
+
+# prediction has a nested array.
+#
+# prediction[0][0] gets the actual probability value.
+
+probability = prediction[0][0]
+
+
+# Display the probability.
+
+print("\nPrediction Probability:")
+print(probability)
+
+
+# ============================================================
+# 24. CONVERT PROBABILITY INTO SENTIMENT
+# ============================================================
+
+# We use 0.5 as the decision boundary.
+#
+# If probability >= 0.5:
+#       Positive
+#
+# If probability < 0.5:
+#       Negative
+
+if probability >= 0.5:
+
+    print("Sentiment: Positive")
+
+else:
+
+    print("Sentiment: Negative")
